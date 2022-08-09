@@ -7,48 +7,58 @@ import com.ehizman.goodreads.events.SendMessageEvent;
 import com.ehizman.goodreads.exceptions.GoodReadsException;
 import com.ehizman.goodreads.models.MailResponse;
 import com.ehizman.goodreads.models.MessageRequest;
+import com.ehizman.goodreads.models.Role;
 import com.ehizman.goodreads.models.User;
 import com.ehizman.goodreads.respositories.UserRepository;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-public class UserServiceImpl implements UserService{
+public class UserServiceImpl implements UserService, UserDetailsService {
     private UserRepository userRepository;
 
     private ApplicationEventPublisher applicationEventPublisher;
     private ModelMapper modelMapper;
     private EmailService emailService;
 
+    private BCryptPasswordEncoder bCryptPasswordEncoder;
+
     public UserServiceImpl(UserRepository userRepository,
                            ModelMapper mapper,
                            EmailService emailService,
-                           ApplicationEventPublisher applicationEventPublisher) {
+                           ApplicationEventPublisher applicationEventPublisher,
+                           BCryptPasswordEncoder bCryptPasswordEncoder) {
         this.userRepository = userRepository;
         this.modelMapper = mapper;
         this.emailService = emailService;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 
     @Override
     public UserDto createUserAccount(AccountCreationRequest accountCreationRequest) throws GoodReadsException, UnirestException, ExecutionException, InterruptedException {
         validate(accountCreationRequest, userRepository);
-        User user = User.builder()
-                .firstName(accountCreationRequest.getFirstName())
-                .lastName(accountCreationRequest.getLastName())
-                .email(accountCreationRequest.getEmail())
-                .password(accountCreationRequest.getPassword())
-                .dateJoined(LocalDate.now())
-                .build();
+        User user = new User(accountCreationRequest.getFirstName(), accountCreationRequest.getLastName(),
+                accountCreationRequest.getEmail(), bCryptPasswordEncoder.encode(accountCreationRequest.getPassword()));
+        user.setDateJoined(LocalDate.now());
         MessageRequest message = MessageRequest.builder()
                         .subject("VERIFY EMAIL")
                         .sender("ehizman.tutoredafrica@gmail.com")
@@ -87,11 +97,31 @@ public class UserServiceImpl implements UserService{
         return modelMapper.map(userToSave, UserDto.class);
     }
 
+    @Override
+    public User findUserByEmail(String email) throws GoodReadsException {
+        return userRepository.findUserByEmail(email).orElseThrow(()-> new GoodReadsException("user not found", 400));
+    }
+
     private static void validate(AccountCreationRequest accountCreationRequest, UserRepository userRepository) throws GoodReadsException {
 
         User user = userRepository.findUserByEmail(accountCreationRequest.getEmail()).orElse(null);
         if (user != null){
             throw new GoodReadsException("user email already exists", 400);
         }
+    }
+
+    @Override
+    @SneakyThrows
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = userRepository.findUserByEmail(email).orElseThrow(()-> new GoodReadsException("user not found", 403));
+        org.springframework.security.core.userdetails.User returnedUser = new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), getAuthorities(user.getRoles()));
+        log.info("Returned user --> {}", returnedUser);
+        return returnedUser;
+    }
+    private Collection<? extends GrantedAuthority> getAuthorities(Set<Role> roles) {
+        Collection<? extends SimpleGrantedAuthority> authorities = roles.stream().map(
+                role -> new SimpleGrantedAuthority(role.getRoleType().name())
+        ).collect(Collectors.toSet());
+        return authorities;
     }
 }
