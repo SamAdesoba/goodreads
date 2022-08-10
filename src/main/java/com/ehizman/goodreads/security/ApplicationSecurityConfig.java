@@ -20,7 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
         prePostEnabled = true
 )
 public class ApplicationSecurityConfig{
-    private UnAuthorizedEntryPoint  unAuthorizedEntryPoint;
+    private final UnAuthorizedEntryPoint  unAuthorizedEntryPoint;
 
     public ApplicationSecurityConfig(UnAuthorizedEntryPoint unAuthorizedEntryPoint) {
         this.unAuthorizedEntryPoint = unAuthorizedEntryPoint;
@@ -31,10 +31,11 @@ public class ApplicationSecurityConfig{
         http.cors().and().csrf().disable()
                 .authorizeHttpRequests(authorize -> {
                     try {
-                        authorize.antMatchers("/**/users/", "/**/auth/login").permitAll()
+                        authorize.antMatchers("/**/auth/**").permitAll()
                                 .anyRequest().authenticated()
                                 .and()
-                                .exceptionHandling().authenticationEntryPoint(unAuthorizedEntryPoint).and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+//                                .exceptionHandling().authenticationEntryPoint(unAuthorizedEntryPoint)
+                                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }

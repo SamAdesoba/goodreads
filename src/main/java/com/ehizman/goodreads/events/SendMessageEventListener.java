@@ -1,7 +1,7 @@
 package com.ehizman.goodreads.events;
 
 import com.ehizman.goodreads.models.MailResponse;
-import com.ehizman.goodreads.models.MessageRequest;
+import com.ehizman.goodreads.models.VerificationMessageRequest;
 import com.ehizman.goodreads.services.EmailService;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import lombok.extern.slf4j.Slf4j;
@@ -29,12 +29,18 @@ public class SendMessageEventListener {
 
     @EventListener
     public void handleSendMessageEvent(SendMessageEvent event) throws UnirestException, ExecutionException, InterruptedException {
-        MessageRequest messageRequest = (MessageRequest) event.getSource();
+        VerificationMessageRequest messageRequest = (VerificationMessageRequest) event.getSource();
+        log.info("Domain Url -->{}", messageRequest.getDomainUrl());
+        log.info("Token -->{}", messageRequest.getVerificationToken());
+
+        String verificationLink = messageRequest.getDomainUrl()+"api/v1/auth/verify/"+messageRequest.getVerificationToken();
+        log.info("Verification Link --> {}",verificationLink );
+
         log.info("Message request --> {}",messageRequest);
         Context context = new Context();
-        context.setVariable("user_name", messageRequest.getUsersFullName());
-        context.setVariable("verification_token", "https://www.google.com");
-        if (Arrays.asList(env.getActiveProfiles()).contains("prod")){
+        context.setVariable("user_name", messageRequest.getUsersFullName().toUpperCase());
+        context.setVariable("verification_token", verificationLink);
+        if (Arrays.asList(env.getActiveProfiles()).contains("dev")){
             log.info("Message Event -> {}", event.getSource());
             messageRequest.setBody(templateEngine.process("registration_verification_mail.html", context));
             MailResponse mailResponse = emailService.sendHtmlMail(messageRequest).get();

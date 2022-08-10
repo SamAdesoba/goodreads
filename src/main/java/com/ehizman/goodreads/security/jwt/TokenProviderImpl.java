@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TokenProviderImpl implements TokenProvider{
 
-    private final static Long TOKEN_VALIDITY_PERIOD = (long) (24 * 10 * 3600);
+    private final static Long TOKEN_VALIDITY_PERIOD = (long) (24 * 10 * 360000);
 
     public final String SIGNING_KEY = System.getenv("SIGNING_KEY");
     public final String AUTHORITIES_KEY = System.getenv("AUTHORITIES_KEY");
@@ -84,6 +84,16 @@ public class TokenProviderImpl implements TokenProvider{
                 .compact();
         log.info("Jwts -->{}", jwts);
         return jwts;
+    }
+
+    @Override
+    public String generateTokenForVerification (String id){
+        return Jwts.builder()
+                .setSubject(id)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + (long) (24 * 10 * 3600)))
+                .signWith(SignatureAlgorithm.HS256, SIGNING_KEY)
+                .compact();
     }
 
     @Override

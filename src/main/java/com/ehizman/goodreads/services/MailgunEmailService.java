@@ -1,7 +1,7 @@
 package com.ehizman.goodreads.services;
 
 import com.ehizman.goodreads.models.MailResponse;
-import com.ehizman.goodreads.models.MessageRequest;
+import com.ehizman.goodreads.models.VerificationMessageRequest;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
@@ -22,23 +22,23 @@ public class MailgunEmailService implements EmailService{
 
     @Override
     @Async
-    public CompletableFuture<MailResponse> sendHtmlMail(MessageRequest messageRequest) throws UnirestException {
+    public CompletableFuture<MailResponse> sendHtmlMail(VerificationMessageRequest messageRequest) throws UnirestException {
         log.info("DOMAIN -> {}", DOMAIN);
         log.info("API KEY -> {}", PRIVATE_KEY);
-        HttpResponse<JsonNode> request = Unirest.post("https://api.mailgun.net/v3/" + DOMAIN + "/messages")
+        HttpResponse<String> request = Unirest.post("https://api.mailgun.net/v3/" + DOMAIN + "/messages")
 			.basicAuth("api", PRIVATE_KEY)
                 .queryString("from", messageRequest.getSender())
                 .queryString("to", messageRequest.getReceiver())
                 .queryString("subject", messageRequest.getSubject())
                 .queryString("html", messageRequest.getBody())
-                .asJson();
+                .asString();
         MailResponse mailResponse = request.getStatus() == 200 ? new MailResponse(true) : new MailResponse(false);
         return CompletableFuture.completedFuture(mailResponse);
     }
 
     @Override
     @Async
-    public CompletableFuture<MailResponse> sendSimpleMail(MessageRequest messageRequest) throws UnirestException {
+    public CompletableFuture<MailResponse> sendSimpleMail(VerificationMessageRequest messageRequest) throws UnirestException {
         log.info("DOMAIN -> {}", DOMAIN);
         log.info("API KEY -> {}", PRIVATE_KEY);
         HttpResponse<JsonNode> request = Unirest.post("https://api.mailgun.net/v3/" + DOMAIN + "/messages")

@@ -8,7 +8,6 @@ import com.ehizman.goodreads.models.Credentials;
 import com.ehizman.goodreads.services.BookService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.bind.DefaultValue;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,9 +25,9 @@ import java.util.concurrent.ExecutionException;
 @Slf4j
 @RequestMapping("/api/v1/books")
 public class BookController {
-    private BookService bookService;
-    private List<String> validImageExtensions;
-    private List<String> validFileExtensions;
+    private final BookService bookService;
+    private final List<String> validImageExtensions;
+    private final List<String> validFileExtensions;
 
     public BookController(BookService bookService) {
         this.bookService = bookService;
@@ -57,8 +56,9 @@ public class BookController {
         Map<String, Object> pageResult = bookService.findAll(Integer.parseInt(pageNo), Integer.parseInt(numberOfItems));
         ApiResponse apiResponse = ApiResponse.builder()
                 .status("success")
-                .message("page returned")
+                .message("pages returned")
                 .data(pageResult)
+                .result((int)pageResult.get("NumberOfElementsInPage"))
                 .build();
         return new ResponseEntity<>(apiResponse, HttpStatus.OK);
     }

@@ -1,12 +1,10 @@
 package com.ehizman.goodreads.controllers;
 
 import com.ehizman.goodreads.controllers.requestsAndResponses.ApiResponse;
-import com.ehizman.goodreads.controllers.requestsAndResponses.AccountCreationRequest;
 import com.ehizman.goodreads.controllers.requestsAndResponses.UpdateRequest;
 import com.ehizman.goodreads.dtos.UserDto;
 import com.ehizman.goodreads.exceptions.GoodReadsException;
 import com.ehizman.goodreads.services.UserService;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,48 +15,16 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 @RestController
 @Slf4j
 @RequestMapping("/api/v1/users")
 public class UserController {
-
-    private UserService userService;
+    private final UserService userService;
 
     public UserController(UserService userService) {
         this.userService = userService;
     }
-
-    @PostMapping("/")
-    public ResponseEntity<?> createUser(@RequestBody @Valid @NotNull AccountCreationRequest accountCreationRequest){
-        try {
-            log.info("Account Creation Request ==> {}",accountCreationRequest);
-            UserDto userDto = userService.createUserAccount(accountCreationRequest);
-            ApiResponse apiResponse = ApiResponse.builder()
-                    .status("success")
-                    .message("user created successfully")
-                    .data(userDto)
-                    .build();
-            log.info("Returning response");
-            return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
-        }
-        catch (GoodReadsException e) {
-            ApiResponse apiResponse = ApiResponse.builder()
-                    .status("fail")
-                    .message(e.getMessage())
-                    .build();
-            return new ResponseEntity<>(apiResponse, HttpStatus.valueOf(e.getStatusCode()));
-        } catch (UnirestException | ExecutionException | InterruptedException e){
-            ApiResponse apiResponse = ApiResponse.builder()
-                    .status("fail")
-                    .message(e.getMessage())
-                    .build();
-            return new ResponseEntity<>(apiResponse, HttpStatus.valueOf(400));
-        }
-    }
-
-
     @GetMapping("/{id}")
     public ResponseEntity<?> getUser(@PathVariable("id") @NotNull @NotBlank String userId) {
         try {

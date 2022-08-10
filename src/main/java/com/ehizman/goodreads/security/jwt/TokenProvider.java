@@ -18,5 +18,7 @@ public interface TokenProvider {
     Boolean isJWTTokenExpired(String token);
     String generateJWTToken(Authentication authentication);
     Boolean validateJWTToken(String token, UserDetails userDetails);
+
+    String generateTokenForVerification(String id);
     UsernamePasswordAuthenticationToken getAuthenticationToken(final String token, final Authentication existingAuth, final UserDetails userDetails);
 }
